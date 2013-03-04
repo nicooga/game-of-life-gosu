@@ -1,15 +1,15 @@
-class Grid < Array
+class GameOfLife::Grid < Array
   def initialize(x,y=x)
     if x.is_a? String
       super x.lines.map { |l| l.chomp.split '|' }
       .transpose
       .map.with_index do |col, x| 
-        col.map.with_index { |cell, y| Cell.new(x: x, y: y, alive: !!(cell =~ /o/i)) }
+        col.map.with_index { |cell, y| GameOfLife::Cell.new(x: x, y: y, alive: !!(cell =~ /o/i)) }
       end
     else
       super(x) do |x|
         Array.new(y) do
-          Cell.new(alive: [true,false].sample, x: x, y: y)
+          GameOfLife::Cell.new(alive: [true,false].sample, x: x, y: y)
         end
       end
     end
@@ -18,6 +18,13 @@ class Grid < Array
   def next!
     cells_to_kill = []
     cells_to_resurrect = []
+    slice_around = ->(condition) do
+      each_cell do |cell|
+        next unless cell.alive?
+        an = around(cell.x, cell.y).flatten.compact.count { |cell| cell.alive? }
+        cells_to_kill << [cell.x, cell.y] if an < 2
+      end
+    end
 
     # Any live cell with fewer than two live neighbours dies, as if caused by under-population.
     each_cell do |cell|
@@ -48,19 +55,26 @@ class Grid < Array
     self
   end
 
-  def animate!(gens=10,sleep_time=1)
+  def next; dup.next!; end
+
+  def animate!(gens=10*100,interval=0.3)
+    print
     gens.times do
       next!
       print
       puts '-' * first.size
-      sleep(sleep_time)
+      sleep(interval)
     end
+  end
+
+  def animate(*args)
+    dup.animate! *args
   end
 
   def around(x,y)
     return nil unless [x,y].all? { |e| e >= 0 }
     slice_3 = ->(a,i){ i.zero? ? [a.size+1, 0, 1] : ((i-1)..(i+1)).to_a }
-    sg = Grid[*slice_3.call(self, x)
+    sg = self.class[*slice_3.call(self, x)
     .map { |xi| self[xi] || Array.new(3, nil) }
     .map do |ary|
       slice_3.call(ary, y)

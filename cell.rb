@@ -1,4 +1,4 @@
-class Cell
+class  GameOfLife::Cell
   attr_accessor :x, :y
 
   def initialize(hash)
@@ -12,6 +12,6 @@ class Cell
   def resurrect!;   @alive = true   end
   
   def to_s
-    alive? ? "\e[1;33mO\e[0m" : 'X'
+    alive? ? "\e[1;32mO\e[0m" : "\e[1;31mX\e[0m"
   end
 end
