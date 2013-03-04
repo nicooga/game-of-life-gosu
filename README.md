@@ -12,7 +12,7 @@ pry
 ```
 ```ruby
 [1] pry(main)> require 'path/to/cloned/repo/game-of-life-gosu/game-of-life.rb'
-[4] pry(main)> GameOfLife::PULSAR.animate
+[2] pry(main)> GameOfLife::PULSAR.animate
 
 X|X|X|X|X|X|X|X|X|X|X|X|X|X|X|X|X
 X|X|X|X|X|X|X|X|X|X|X|X|X|X|X|X|X
