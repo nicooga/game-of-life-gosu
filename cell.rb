@@ -12,6 +12,6 @@ class Cell
   def resurrect!;   @alive = true   end
   
   def to_s
-    alive? ? 'O' : 'X'
+    alive? ? "\e[1;33mO\e[0m" : 'X'
   end
 end
