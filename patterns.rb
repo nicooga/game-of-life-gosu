@@ -1,4 +1,3 @@
-
 module GameOfLife
   PULSAR = Grid.new <<-GRID
     X|X|X|X|X|X|X|X|X|X|X|X|X|X|X|X|X
@@ -21,9 +20,11 @@ module GameOfLife
   GRID
 
   GLIDER = Grid.new <<-GRID
-    x|o|x
-    x|x|o
-    o|o|o
+    x|x|x|x|x
+    x|x|o|x|x
+    x|x|x|o|x
+    x|o|o|o|x
+    x|x|x|x|x
   GRID
 
   LWSS = Grid.new <<-GRID

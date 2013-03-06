@@ -12,6 +12,6 @@ class  GameOfLife::Cell
   def resurrect!;   @alive = true   end
   
   def to_s
-    alive? ? "\e[1;32mO\e[0m" : "\e[1;31mX\e[0m"
+    alive? ? "\e[1;32mO\e[0m" : "\e[1;30mX\e[0m"
   end
 end

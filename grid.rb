@@ -16,42 +16,24 @@ class GameOfLife::Grid < Array
   end
 
   def next!
-    cells_to_kill = []
-    cells_to_resurrect = []
-    slice_around = ->(condition) do
-      each_cell do |cell|
-        next unless cell.alive?
-        an = around(cell.x, cell.y).flatten.compact.count { |cell| cell.alive? }
-        cells_to_kill << [cell.x, cell.y] if an < 2
-      end
-    end
+    cells, cells_to_kill, cells_to_resurrect = [], [], []
 
-    # Any live cell with fewer than two live neighbours dies, as if caused by under-population.
     each_cell do |cell|
-      next unless cell.alive?
-      an = around(cell.x, cell.y).flatten.compact.count { |cell| cell.alive? }
-      cells_to_kill << [cell.x, cell.y] if an < 2
+      cells << [cell, around(cell.x,cell.y).flatten.compact.count(&:alive?)]
     end
-
+    
+    # Any live cell with fewer than two live neighbours dies, as if caused by under-population.
+    cells_to_kill.concat cells.select { |cell,ln| cell.alive? and ln < 2 }
     # Any live cell with two or three live neighbours lives on to the next generation.
       # Do nothing...
-
     # Any live cell with more than three live neighbours dies, as if by overcrowding.
-    each_cell do |cell|
-      next unless cell.alive?
-      an = around(cell.x, cell.y).flatten.compact.count { |cell| cell.alive? }
-      cells_to_kill << [cell.x, cell.y] if an > 3
-    end
+    cells_to_kill.concat cells.select { |cell,ln| cell.alive? and ln > 3 }
+    # Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+    cells_to_resurrect.concat cells.select { |cell,ln| !cell.alive? and ln == 3 }
 
-    # Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction
-    each_cell do |cell|
-      next if cell.alive?
-      an = around(cell.x, cell.y).flatten.compact.count { |cell| cell.alive? }
-      cells_to_resurrect << [cell.x, cell.y] if an == 3
-    end
-
-    cells_to_kill.each      { |x,y| self[x][y].kill!      }
-    cells_to_resurrect.each { |x,y| self[x][y].resurrect! }
+    cells_to_kill.each      { |cell,_| cell.kill! }
+    cells_to_resurrect.each { |cell,_| cell.resurrect! }
+    
     self
   end
 
@@ -59,10 +41,11 @@ class GameOfLife::Grid < Array
 
   def animate!(gens=10*100,interval=0.3)
     print
+    puts (['-']*first.size).join('-')
     gens.times do
       next!
       print
-      puts '-' * first.size
+      puts (['-']*first.size).join('-')
       sleep(interval)
     end
   end
@@ -71,17 +54,27 @@ class GameOfLife::Grid < Array
     dup.animate! *args
   end
 
-  def around(x,y)
-    return nil unless [x,y].all? { |e| e >= 0 }
-    slice_3 = ->(a,i){ i.zero? ? [a.size+1, 0, 1] : ((i-1)..(i+1)).to_a }
-    sg = self.class[*slice_3.call(self, x)
-    .map { |xi| self[xi] || Array.new(3, nil) }
-    .map do |ary|
-      slice_3.call(ary, y)
-      .map { |yi| ary[yi] }
-    end]
-    sg[1][1] = nil
-    sg
+  NEGATIVE_SLICE = ->(ary,i){ ((0..ary.size-1).to_a*2)[ary.size+i,3] }
+  OVER_SLICE = ->(ary,i){ ((0..ary.size-1).to_a*2)[i%ary.size,3] }
+  SLICE_AROUND = ->(ary,i) do
+    return Array.new(3,nil) if ary.nil?
+    if i <= 0
+      NEGATIVE_SLICE.call(ary,i-1) 
+    elsif i >= ary.size-1
+      OVER_SLICE.call(ary,i-1)
+    else 
+      ((i-1)..(i+1)).to_a
+    end
+  end
+
+  def around(x,y)    
+    ary = SLICE_AROUND.call(self,x).map do |xi|
+      SLICE_AROUND.call(self[xi],y).map do |yi|
+        self[xi][yi]
+      end
+    end
+    ary[1][1] = nil
+    self.class[*ary]
   end
 
   def each_cell
@@ -89,18 +82,6 @@ class GameOfLife::Grid < Array
       col.each do |cell|
         yield cell
       end
-    end
-  end
-
-  def map_cells!
-    replace(map do |col|
-      col.map { |cell| yield(cell)}
-    end)
-  end
-
-  def map_cells
-    map do |col|
-      col.map { |cell| yield(cell) }
     end
   end
 
