@@ -19,7 +19,7 @@ class GameOfLife::Grid < Array
     cells, cells_to_kill, cells_to_resurrect = [], [], []
 
     each_cell do |cell|
-      cells << [cell, around(cell.x,cell.y).flatten.compact.count(&:alive?)]
+      cells << [cell, around(cell).flatten.compact.count(&:alive?)]
     end
     
     # Any live cell with fewer than two live neighbours dies, as if caused by under-population.
@@ -59,17 +59,18 @@ class GameOfLife::Grid < Array
   SLICE_AROUND = ->(ary,i) do
     return Array.new(3,nil) if ary.nil?
     if i <= 0
-      NEGATIVE_SLICE.call(ary,i-1) 
+      NEGATIVE_SLICE[ary,i-1]
     elsif i >= ary.size-1
-      OVER_SLICE.call(ary,i-1)
+      OVER_SLICE[ary,i-1]
     else 
       ((i-1)..(i+1)).to_a
     end
   end
 
-  def around(x,y)    
-    ary = SLICE_AROUND.call(self,x).map do |xi|
-      SLICE_AROUND.call(self[xi],y).map do |yi|
+  def around(x,y=nil)
+    x, y = x.x, x.y if %w(x y).map { |m| x.respond_to? m }.all?
+    ary = SLICE_AROUND[self,x].map do |xi|
+      SLICE_AROUND[self[xi],y].map do |yi|
         self[xi][yi]
       end
     end
@@ -85,11 +86,29 @@ class GameOfLife::Grid < Array
     end
   end
 
+  def expand(cols=0,rows=cols)
+    tmp_heigth, tmp_width = heigth, width
+    cols.times do |x|
+      self << Array.new(tmp_heigth) { |y| GameOfLife::Cell.new(x: tmp_width+x, y: y, alive: false) }
+    end
+
+    tmp_heigth, tmp_width = heigth, width
+    each.with_index do |col,x|
+      rows.times do |y|
+        col << GameOfLife::Cell.new(x: x, y: tmp_heigth+y, alive: false)
+      end
+    end
+
+    self
+  end
+
   def to_s
     self.transpose.map do |row| 
       row.map { |cell| cell.nil? ? '+' : cell.to_s }.join('|')
     end.join("\n")
   end
 
-  def print; puts self.to_s; end
+  def heigth; first.size;     end
+  def width;  size;           end
+  def print;  puts self.to_s; end
 end
